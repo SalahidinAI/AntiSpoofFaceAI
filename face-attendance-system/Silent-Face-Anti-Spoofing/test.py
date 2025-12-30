@@ -64,7 +64,7 @@ def test(image, model_dir, device_id):
     label = np.argmax(prediction)
     value = prediction[0][label]/2
 
-    return label
+    return label, prediction
 
 
 if __name__ == "__main__":
