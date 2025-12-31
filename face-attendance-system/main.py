@@ -300,8 +300,16 @@ def delete_user(name, db_dir):
         return f"File for '{name}' not found."
 
 
+def sharpen_frame(frame):
+    # Create a sharpening kernel
+    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+    sharpened = cv2.filter2D(frame, -1, kernel)
+    return sharpened
+
+
 def main():
     # Setup
+    # cap = cv2.VideoCapture('test1.mp4') # uncomment 339, 341
     cap = cv2.VideoCapture(0)
     model_dir = '/Users/salahidin/PycharmProjects/Customs/AntiSpoofFace/face-attendance-system/Silent-Face-Anti-Spoofing/resources/anti_spoof_models'
     device_id = 0
@@ -319,12 +327,18 @@ def main():
 
     print("System Started. Press 1:Login, 2:Logout, 3:Register, 4:Delete, q:Quit")
 
+    history = []
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
+        # Use 0 for vertical flip, or -1 for both axes
+        # frame = cv2.flip(frame, 0) # change it, depends on video or camera
+
         # --- 1. Anti-Spoofing Check ---
+        # frame = sharpen_frame(frame) # if blurred then u need this row
         label, prediction = test(
             image=frame,
             model_dir=model_dir,
@@ -337,8 +351,13 @@ def main():
         spoof_score = 1.0 - live_score
         score_text = f"[{live_score:.2f}, {spoof_score:.2f}]"
 
+        history.append(live_score)
+        if len(history) > 20: history.pop(0)
+        avg_live_score = sum(history) / len(history)
+
         # --- 2. Draw Anti-Spoof UI ---
-        if label == 1:
+        # if label == 1:
+        if avg_live_score > 0.4:
             color = (0, 255, 0)  # Green
             result_text = "Live"
         else:
